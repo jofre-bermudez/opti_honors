@@ -109,6 +109,10 @@ model.addConstrs(s_k_t[k, t] <= Q_k[k] for k in K for t in T)
 model.addConstrs(quicksum(y_i_k_t[i, k, t] for k in K) + quicksum(w_i_l_t[i, l, t] for l in L) == X_i_t[i, t] for t in T for i in N)
 model.addConstrs(quicksum(w_i_l_t[i, l, t] for i in N) + quicksum(v_k_l_t[k, l, t] for k in K) == d_l_t[l][t] for t in T for l in L)
 model.addConstrs(s_k_t[k, t] == s_k_t[k, t - 1] + quicksum(y_i_k_t[i, k, t] for i in N) - quicksum(v_k_l_t[k, l, t] for l in L) for t in range(1, T[-1]) for k in K)
+for k in K:
+    for t in T:
+        if t == 0:
+            model.addConstr(s_k_t[k, t] == s_k_0[k])
 # Naturaleza de las variables
 model.addConstrs((X_i_t[i, t] >= 0) for i in N for t in T)
 model.addConstrs((s_k_t[k, t] >= 0) for k in K for t in T)
@@ -118,7 +122,7 @@ model.addConstrs((v_k_l_t[k, l, t] >= 0) for k in K for l in L for t in T)
 
 # Función objetivo
 f_objetivo = quicksum(c_i[i] * X_i_t[i, t] for i in N for t in T) + quicksum(F_i[i] * Z_i[i] for i in N) + quicksum(h_k[k] * s_k_t[k, t] for t in T for k in K) \
-    + C * quicksum((quicksum(d1_i_k[i,k] * y_i_k_t[i, k, t] for i in N for k in K) + quicksum(d2_i_l[i, l] * w_i_l_t[i, l, t] for i in N for l in L) + quicksum(v_k_l_t[k, l, t] * d3_k_l[k, l] for k in K for l in L)) for t in T)
+    + C * quicksum((quicksum(d1_i_k[i][k] * y_i_k_t[i, k, t] for i in N for k in K) + quicksum(d2_i_l[i][l] * w_i_l_t[i, l, t] for i in N for l in L) + quicksum(v_k_l_t[k, l, t] * d3_k_l[k][l] for k in K for l in L)) for t in T)
 
 model.update()
 model.setObjective(f_objetivo, GRB.MINIMIZE)
@@ -128,4 +132,6 @@ model.optimize()
 # Añadir procesamiento de datos
 if model.status == GRB.OPTIMAL:
     print(model.objVal)
-
+    for v in model.getVars():
+        if abs(v.x) != 0:
+            print(v.VarName)
